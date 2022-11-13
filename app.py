@@ -1,11 +1,12 @@
-from flask import Flask, request, render_template
-from PIL import Image, ImageFilter
-from pprint import PrettyPrinter
-from dotenv import load_dotenv
 import json
 import os
 import random
+from pprint import PrettyPrinter
+
 import requests
+from dotenv import load_dotenv
+from flask import Flask, render_template, request
+from PIL import Image, ImageFilter
 
 load_dotenv()
 
@@ -55,8 +56,20 @@ def compliments():
 @app.route('/compliments_results')
 def compliments_results():
     """Show the user some compliments."""
+    if int(request.args.get('num_compliments')) > len(list_of_compliments):
+        num_compliments = len(list_of_compliments)
+    else:
+        num_compliments = int(request.args.get('num_compliments'))
+
+    if request.args.get('wants_compliments') == 'yes':
+        wants_compliments = True
+    else:
+        wants_compliments = False
+
     context = {
-        # TODO: Enter your context variables here.
+        'users_name': request.args.get('users_name'),
+        'wants_compliments': wants_compliments,
+        'compliments': random.sample(list_of_compliments, num_compliments),
     }
 
     return render_template('compliments_results.html', **context)
@@ -104,14 +117,14 @@ filter_types_dict = {
 
 def save_image(image, filter_type):
     """Save the image, then return the full file path of the saved image."""
-    # Append the filter type at the beginning (in case the user wants to 
+    # Append the filter type at the beginning (in case the user wants to
     # apply multiple filters to 1 image, there won't be a name conflict)
     new_file_name = f"{filter_type}-{image.filename}"
     image.filename = new_file_name
 
     # Construct full file path
     file_path = os.path.join(app.root_path, 'static/images', new_file_name)
-    
+
     # Save the image
     image.save(file_path)
 
@@ -131,12 +144,12 @@ def image_filter():
     filter_types = filter_types_dict.keys()
 
     if request.method == 'POST':
-        
+
         # TODO: Get the user's chosen filter type (whichever one they chose in the form) and save
         # as a variable
         # HINT: remember that we're working with a POST route here so which requests function would you use?
         filter_type = ''
-        
+
         # Get the image file submitted by the user
         image = request.files.get('users_image')
 
@@ -166,13 +179,13 @@ def image_filter():
 # GIF SEARCH ROUTE
 ################################################################################
 
-"""You'll be using the Tenor API for this next section. 
-Be sure to take a look at their API. 
+"""You'll be using the Tenor API for this next section.
+Be sure to take a look at their API.
 
 https://tenor.com/gifapi/documentation
 
-Register and make an API key for yourself. 
-Set up dotenv, create a .env file and define a variable 
+Register and make an API key for yourself.
+Set up dotenv, create a .env file and define a variable
 API_KEY with a value that is the api key for your account. """
 
 API_KEY = os.getenv('API_KEY')
@@ -185,7 +198,7 @@ pp = PrettyPrinter(indent=4)
 def gif_search():
     """Show a form to search for GIFs and show resulting GIFs from Tenor API."""
     if request.method == 'POST':
-        # TODO: Get the search query & number of GIFs requested by the user, store each as a 
+        # TODO: Get the search query & number of GIFs requested by the user, store each as a
         # variable
 
         response = requests.get(
@@ -205,9 +218,9 @@ def gif_search():
 
          # Uncomment me to see the result JSON!
         # Look closely at the response! It's a list
-        # list of data. The media property contains a 
-        # list of media objects. Get the gif and use it's 
-        # url in your template to display the gif. 
+        # list of data. The media property contains a
+        # list of media objects. Get the gif and use it's
+        # url in your template to display the gif.
         # pp.pprint(gifs)
 
         return render_template('gif_search.html', **context)
